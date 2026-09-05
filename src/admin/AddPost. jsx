@@ -1,0 +1,228 @@
+import { useState } from "react";
+
+import {
+  collection,
+  addDoc,
+  Timestamp
+} from "firebase/firestore";
+
+import { db, storage } from "../firebase";
+
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL
+} from "firebase/storage";
+
+import {
+  useNavigate
+} from "react-router-dom";
+
+
+function AddPost() {
+
+  const navigate = useNavigate();
+
+  const [title, setTitle] = useState("");
+
+  const [category, setCategory] =
+    useState("কার্যক্রম");
+
+  const [shortDescription,
+    setShortDescription] = useState("");
+
+  const [content, setContent] =
+    useState("");
+
+  const [image, setImage] = useState(null);
+
+  const [loading, setLoading] =
+    useState(false);
+
+
+  const createPost = async (e) => {
+
+    e.preventDefault();
+
+    setLoading(true);
+
+    try {
+
+      let imageUrl = "";
+
+
+      if (image) {
+
+        const imageRef = ref(
+          storage,
+          `posts/${Date.now()}-${image.name}`
+        );
+
+
+        await uploadBytes(
+          imageRef,
+          image
+        );
+
+
+        imageUrl =
+          await getDownloadURL(imageRef);
+
+      }
+
+
+      await addDoc(
+        collection(db, "posts"),
+        {
+
+          title,
+
+          category,
+
+          shortDescription,
+
+          content,
+
+          featuredImage: imageUrl,
+
+          status: "published",
+
+          featured: false,
+
+          createdAt:
+            Timestamp.now(),
+
+          updatedAt:
+            Timestamp.now()
+
+        }
+      );
+
+
+      alert("পোস্ট সফলভাবে প্রকাশ করা হয়েছে!");
+
+      navigate("/admin/posts");
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      alert("পোস্ট প্রকাশ করতে সমস্যা হয়েছে!");
+
+    }
+
+    finally {
+
+      setLoading(false);
+
+    }
+
+  };
+
+
+  return (
+
+    <div className="admin-form-page">
+
+      <h1>
+        নতুন কার্যক্রম পোস্ট করুন
+      </h1>
+
+
+      <form
+        onSubmit={createPost}
+        className="post-form"
+      >
+
+
+        <input
+          placeholder="পোস্টের শিরোনাম"
+          value={title}
+          onChange={e =>
+            setTitle(e.target.value)
+          }
+          required
+        />
+
+
+        <select
+          value={category}
+          onChange={e =>
+            setCategory(e.target.value)
+          }
+        >
+
+          <option>
+            কার্যক্রম
+          </option>
+
+          <option>
+            উন্নয়ন
+          </option>
+
+          <option>
+            জনসেবা
+          </option>
+
+          <option>
+            সামাজিক
+          </option>
+
+          <option>
+            সংবাদ
+          </option>
+
+        </select>
+
+
+        <textarea
+          placeholder="সংক্ষিপ্ত বিবরণ"
+          value={shortDescription}
+          onChange={e =>
+            setShortDescription(e.target.value)
+          }
+        />
+
+
+        <textarea
+          placeholder="সম্পূর্ণ বিস্তারিত লিখুন"
+          rows="10"
+          value={content}
+          onChange={e =>
+            setContent(e.target.value)
+          }
+          required
+        />
+
+
+        <input
+          type="file"
+          accept="image/*"
+          onChange={e =>
+            setImage(e.target.files[0])
+          }
+        />
+
+
+        <button
+          type="submit"
+          disabled={loading}
+        >
+
+          {loading
+            ? "প্রকাশ করা হচ্ছে..."
+            : "পোস্ট প্রকাশ করুন"
+          }
+
+        </button>
+
+      </form>
+
+    </div>
+
+  );
+}
+
+export default AddPost;
